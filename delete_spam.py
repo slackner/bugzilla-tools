@@ -51,8 +51,15 @@ def mark_as_spam(bug_ids, force=False):
     print ""
     print "If you proceed, the following bugs will be marked as spam:"
     print ""
+    account_list = set()
     for bug in bug_list:
         print " #%d - \"%s\" - %s %s" % (bug['id'], bug['summary'], bug['status'], bug['resolution'])
+        account_list.add(bug['creator'])
+    print ""
+    print "Also, the following user accounts will be disabled:"
+    print ""
+    for name in account_list:
+        print " %s" % (name,)
     print ""
 
     if not force:
@@ -63,22 +70,21 @@ def mark_as_spam(bug_ids, force=False):
             if reply[0] == "n": raise KeyboardInterrupt
         print ""
 
-    suspended = set()
-    for bug in bug_list:
-        print "Resolving bug #%d - \"%s\" ..." % (bug['id'], bug['summary'])
+    for name in account_list:
+        print "Disabling account %s ..." % (name,)
 
         # Block the creator from doing more damage
-        if bug['creator'] not in suspended:
+        changes = { 'names'             : [bug['creator']],
+                    'Bugzilla_login'    : config.bugtracker_user,
+                    'Bugzilla_password' : config.bugtracker_pass,
 
-            changes = { 'names'             : [bug['creator']],
-                        'Bugzilla_login'    : config.bugtracker_user,
-                        'Bugzilla_password' : config.bugtracker_pass,
+                    'email_enabled'     : False,
+                    'login_denied_text' : "This account has been suspended because of spam." }
 
-                        'email_enabled'     : False,
-                        'login_denied_text' : "This account has been suspended because of spam." }
+        bugtracker.User.update(changes)
 
-            bugtracker.User.update(changes)
-            suspended.add(bug['creator'])
+    for bug in bug_list:
+        print "Resolving bug #%d - \"%s\" ..." % (bug['id'], bug['summary'])
 
         # Delete attachments
         attachments = bugtracker.Bug.attachments(dict(ids=[bug['id']]))
@@ -131,7 +137,7 @@ if __name__ == '__main__':
         config.bugtracker_pass = config_parser.get('bugtracker', 'password')
     except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
         print ""
-        print "ERROR: Please set up %s with your username/password." % config.path_config
+        print "ERROR: Please set up %s with your username/password." % (config.path_config,)
         print ""
         print "The file should look like this:"
         print "    [bugtracker]"
