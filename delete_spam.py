@@ -63,7 +63,22 @@ def mark_as_spam(bug_ids, force=False):
             if reply[0] == "n": raise KeyboardInterrupt
         print ""
 
+    suspended = set()
     for bug in bug_list:
+        print "Resolving bug #%d - \"%s\" ..." % (bug['id'], bug['summary'])
+
+        # Block the creator from doing more damage
+        if bug['creator'] not in suspended:
+
+            changes = { 'names'             : [bug['creator']],
+                        'Bugzilla_login'    : config.bugtracker_user,
+                        'Bugzilla_password' : config.bugtracker_pass,
+
+                        'email_enabled'     : False,
+                        'login_denied_text' : "This account has been suspended because of spam." }
+
+            bugtracker.User.update(changes)
+            suspended.add(bug['creator'])
 
         # Delete attachments
         attachments = bugtracker.Bug.attachments(dict(ids=[bug['id']]))
@@ -103,6 +118,8 @@ def mark_as_spam(bug_ids, force=False):
                     'resolution'        : 'INVALID' }
 
         bugtracker.Bug.update(changes)
+
+    print ""
 
 if __name__ == '__main__':
 
