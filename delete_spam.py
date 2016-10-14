@@ -74,7 +74,7 @@ def mark_as_spam(bug_ids, force=False):
         print "Disabling account %s ..." % (name,)
 
         # Block the creator from doing more damage
-        changes = { 'names'             : [bug['creator']],
+        changes = { 'names'             : [name],
                     'Bugzilla_login'    : config.bugtracker_user,
                     'Bugzilla_password' : config.bugtracker_pass,
 
